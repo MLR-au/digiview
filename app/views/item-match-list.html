@@ -1,0 +1,11 @@
+<div class="row" ng-repeat="item in items" style="border: solid 1px black; border-radius: 12px; margin: 10px 0px; padding: 10px 0px;">
+    <div class="col-sm-4 col-md-4 col-lg-4">
+        <img ng-src="{{item.docs[0].thumb_image}}" class="img-thumbnail">
+    </div>
+    <div class="col-sm-8 col-md-8 col-lg-8">
+        <h5>{{item.sequenceNo}}. {{item.docs[0].title[0]}}</h5>
+        <a href="{{item.docs[0].collection_uri}}">View this item in the Library Catalogue</a>
+        <hr/>
+        Number of matches within this item: {{item.numFound}}
+    </div>
+</div>

@@ -19,7 +19,7 @@
     <link rel="stylesheet" href="styles/main.css">
     <!-- endbuild -->
   </head>
-  <body ng-app="App">
+  <body ng-app="digiviewApp">
     <!--[if lt IE 7]>
       <p class="browsehappy">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade your browser</a> to improve your experience.</p>
     <![endif]-->
@@ -55,6 +55,10 @@
         <!-- build:js({.tmp,app}) scripts/scripts.js -->
         <script src="scripts/app.js"></script>
         <script src="scripts/controllers/main.js"></script>
+        <script src="scripts/services/configuration.js"></script>
+        <script src="scripts/services/solr-service.js"></script>
+        <script src="scripts/directives/search-box.js"></script>
+        <script src="scripts/directives/item-match-list.js"></script>
         <!-- endbuild -->
 </body>
 </html>

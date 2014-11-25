@@ -1,6 +1,6 @@
 'use strict';
 
-angular.module('App', [
+angular.module('digiviewApp', [
   'ngRoute'
 ])
   .config(function ($routeProvider) {
