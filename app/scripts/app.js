@@ -9,6 +9,10 @@ angular.module('digiviewApp', [
         templateUrl: 'views/main.html',
         controller: 'MainCtrl'
       })
+      .when('/view/:sequenceNo', {
+        templateUrl: 'views/view.html',
+        controller: 'ViewCtrl'
+      })
       .otherwise({
         redirectTo: '/'
       });

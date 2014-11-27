@@ -7,7 +7,6 @@ angular.module('digiviewApp')
       restrict: 'E',
       link: function postLink(scope, element, attrs) {
           scope.$on('search-results-updated', function() {
-              console.log(SolrService.results);
               scope.items = SolrService.results.items;
           });
       }

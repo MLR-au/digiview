@@ -62,9 +62,9 @@ angular.module('digiviewApp')
     *
     */
     function init() {
-        console.log('############');
-        console.log('############ APPLICATION INITIALISED');
-        console.log('############');
+        console.debug('############');
+        console.debug('############ APPLICATION INITIALISED');
+        console.debug('############');
         SolrService.filters = {};
         SolrService.dateFilters = {};
         SolrService.results = {};
@@ -87,7 +87,7 @@ angular.module('digiviewApp')
         //SolrService.dateOuterBounds();
 
         // load the site data
-        loadSiteData()
+        //loadSiteData()
 
         // url search parameters override saved queries
         if (nLocationTerms() > 0) {
@@ -141,14 +141,17 @@ angular.module('digiviewApp')
     function initAppFromSavedData() {
         var data = SolrService.loadData();
         SolrService.appInit = true;
-        console.log('Initialising app from saved data');
+        console.debug('Initialising app from saved data');
         SolrService.q = data.q;
         SolrService.filters = data.filters,
         SolrService.dateFilters = data.dateFilters,
         SolrService.term = data.term;
         SolrService.searchType = data.searchType;
         SolrService.sort = data.sort;
-        SolrService.rows = data.nResults;
+        if (data.nResults !== undefined) {
+            SolrService.rows = data.nResults;
+        }
+        console.log(SolrService.rows);
 
         // broadcast the fact that we've initialised from a previous
         //  saved state so that the search form can update itself
@@ -164,7 +167,7 @@ angular.module('digiviewApp')
      */
     function initCurrentInstance() {
         SolrService.appInit = true;
-        console.log('Bootstrapping app');
+        console.debug('Bootstrapping app');
 
         // if there's a term in the URL - set it
         if ($routeParams.q !== undefined) {
@@ -235,7 +238,7 @@ angular.module('digiviewApp')
      * @description
      *  Construct the actual query object - the workhorse
      */
-    function getQuery(start) {
+    function getQuery(start, groupId) {
         var q, sort;
 
         var what = SolrService.term;
@@ -250,6 +253,10 @@ angular.module('digiviewApp')
             } else {
                 q = 'title:"' + what + '"^20 OR text:"' + what + '"^10';
             }
+        }
+
+        if (groupId !== undefined) {
+            q += ' AND group:' + groupId;
         }
 
         // add in the facet query filters - if any...
@@ -282,9 +289,14 @@ angular.module('digiviewApp')
                 'group': true,
                 'group.field': 'group',
                 'group.sort': 'page asc',
-                'group.ngroups': true
+                'group.ngroups': true,
             },
-        };
+        }
+
+        if (groupId !== undefined) {
+            q.params['group.limit'] = -1;
+        }
+
         SolrService.q = q;
         return SolrService.q;
     }
@@ -296,7 +308,7 @@ angular.module('digiviewApp')
      *  Save the current search to the browser's session storage
      */
     function saveCurrentSearch() {
-        // store the current query object in the url for later use
+        // store the current query 
         var currentQuery = {
             'date': Date.now(),
             'term': SolrService.term,
@@ -307,7 +319,16 @@ angular.module('digiviewApp')
             'sort': SolrService.sort,
             'site': SolrService.site,
         }
-        console.debug('Storing the current query: ' + currentQuery.date);
+
+        // only store the number in the set if it's more than one because
+        //  one means we've selected something to look at
+        if (SolrService.results.items.length !== 1) {
+            currentQuery.nResults = SolrService.results.items.length;
+        } else {
+            // otherwise - grab the number in the previous set before overwriting
+            var c = loadData();
+            currentQuery.nResults = c.nResults;
+        }
         sessionStorage.setItem('cq', angular.toJson(currentQuery));
     }
 
@@ -327,7 +348,7 @@ angular.module('digiviewApp')
      * @param {boolean} ditchuggestion - Whether to delete the spelling 
      *  suggestion.
      */
-    function search(what, start, ditchSuggestion, saveSearch) {
+    function search(what, start, ditchSuggestion, groupId) {
         // should we remove the suggestion
         //   the only time this should be true is when the method is called
         //   from basic-search. Pretty much all other times it will be false
@@ -347,8 +368,8 @@ angular.module('digiviewApp')
         SolrService.term = what;
 
         // get the query object
-        var q = getQuery(start);
-        console.debug(q);
+        var q = getQuery(start, groupId);
+        console.debug('query: ', q);
         
         $http.jsonp(SolrService.solr, q).then(function(d) {
             // all good - results found
@@ -369,6 +390,7 @@ angular.module('digiviewApp')
      * @param {object} d - The SOLR response
      */
     function saveData(d) {
+        console.log(d);
         if (d === undefined) {
             SolrService.results = {
                 'term': SolrService.term,
