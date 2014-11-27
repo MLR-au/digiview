@@ -8,8 +8,8 @@
  */
 angular.module('digiviewApp')
   .constant('Configuration', {
-      production:               'http://115.146.84.251',
-      testing:                  'http://115.146.84.251',
+      production:               'http://dcvw.esrc.info',
+      testing:                  'http://dcvw.esrc.info',
       loglevel:                 'DEBUG',
       deployment:               'testing',
       allowedRouteParams:       [  ],

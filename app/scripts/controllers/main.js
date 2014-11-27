@@ -3,7 +3,7 @@
 angular.module('digiviewApp')
   .controller('MainCtrl', [ '$scope', 'SolrService', function ($scope, SolrService) {
 
-      $scope.disableNextButton = false;
+      $scope.disableNextButton = true;
 
       $scope.$on('search-results-updated', function() {
         $scope.results = SolrService.results;
