@@ -1,7 +1,9 @@
 {
   "name": "digiview",
   "version": "0.0.0",
-  "dependencies": {},
+  "dependencies": {
+    "grunt-build-control": "^0.1.8"
+  },
   "devDependencies": {
     "grunt": "^0.4.5",
     "grunt-autoprefixer": "~0.4.0",
