@@ -290,6 +290,9 @@ angular.module('digiviewApp')
                 'group.field': 'group',
                 'group.sort': 'page asc',
                 'group.ngroups': true,
+                'hl': 'true',
+                'hl.simple.pre': '<em>',
+                'hl.simple.post': '</em>'
             },
         }
 
@@ -390,7 +393,6 @@ angular.module('digiviewApp')
      * @param {object} d - The SOLR response
      */
     function saveData(d) {
-        console.log(d);
         if (d === undefined) {
             SolrService.results = {
                 'term': SolrService.term,
@@ -413,7 +415,8 @@ angular.module('digiviewApp')
                 'totalGroups': d.data.grouped.group.ngroups,
                 'totalMatches': d.data.grouped.group.matches,
                 'start': parseInt(d.data.responseHeader.params.start),
-                'items': items 
+                'items': items,
+                'highlighting': d.data.highlighting
             };
 
             angular.forEach(SolrService.results.items, function(v,k) {

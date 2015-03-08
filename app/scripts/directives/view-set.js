@@ -1,8 +1,8 @@
 'use strict';
 
 angular.module('digiviewApp')
-  .directive('viewSet', [ '$window', '$location', '$anchorScroll', '$timeout', '$routeParams', 'SolrService', 
-        function ($window, $location, $anchorScroll, $timeout, $routeParams, SolrService) {
+  .directive('viewSet', [ '$window', '$location', '$anchorScroll', '$timeout', '$routeParams', '$http', 'SolrService', 
+        function ($window, $location, $anchorScroll, $timeout, $routeParams, $http, SolrService) {
     return {
       templateUrl: 'views/view-set.html',
       restrict: 'E',
@@ -18,7 +18,22 @@ angular.module('digiviewApp')
           scope.showFilmstrip = true;
           scope.showInformation = false;
 
+          var extractWordMatches = function(h) {
+              scope.matchedWords = [];
+              angular.forEach(h, function(v,k) {
+                  var m = v.text[0].match(/<em>(.*?)<\/em>/g);
+                  angular.forEach(m, function(v,k) {
+                      v = v.replace(/<em>/, '').replace(/<\/em>/, '');
+                      if (scope.matchedWords.indexOf(v) === -1) {
+                          scope.matchedWords.push(v);
+                      }
+                  });
+              })
+          }
+
           scope.$on('search-results-updated', function(v,k) {
+              extractWordMatches(SolrService.results.highlighting);
+              scope.highlighting = SolrService.results.highlighting;
               scope.data = SolrService.results.items[0].docs;
               //
               // construct the data structure for the filmstrip
@@ -29,6 +44,7 @@ angular.module('digiviewApp')
                         'src': v.thumb_image
                       }
                   );
+                  scope.styleMap[k] = '';
               });
 
               // load the first in the set
@@ -66,14 +82,43 @@ angular.module('digiviewApp')
           }
           sizeThePanels();
 
+          var getWordsFile = function(url) {
+              $http.get(url).then(function(resp) {
+                  scope.wordCoords = resp.data;
+                  highlightWordMatches();
+              }, 
+              function() {
+              });
+          }
+
+          var highlightWordMatches = function() {
+              scope.highlights = [];
+              angular.forEach(scope.matchedWords, function(v,k) {
+                  if (scope.wordCoords[v] !== undefined) {
+                      angular.forEach(scope.wordCoords[v], function(i, j) {
+                          var n = {
+                            'top': parseInt(i.top),
+                            'bottom': parseInt(i.bottom),
+                            'left':  parseInt(i.left),
+                            'right':  parseInt(i.right)
+                          }
+                          scope.highlights.push(n);
+                      })
+                  }
+              })
+          }
+
 
           // handle an image selection
           scope.loadImage = function(id) {
+              console.log(scope.matchedWords);
+              getWordsFile(scope.data[id].words);
+              scope.styleMap = {};
               if (scope.current !== id) {
                   scope.current = id;
               }
-              var image = scope.data[id];
-              scope.image = image.large_image;
+              scope.image = scope.data[id];
+              scope.styleMap[id] = 'highlight-current';
 
               scope.show = false;
               scope.show = true;
@@ -110,6 +155,7 @@ angular.module('digiviewApp')
               scope.current += 1;
               scope.loadImage(scope.current);
           }
+
           // page to previous image
           scope.previous = function() {
               scope.current -= 1;
@@ -117,13 +163,13 @@ angular.module('digiviewApp')
           }
 
           // jump to first image
-          scope.jumpToStart = function( ){
+          scope.jumpToStart = function() {
               scope.current = 0;
               scope.loadImage(scope.current);
           }
 
           // jump to last image
-          scope.jumpToEnd = function( ){
+          scope.jumpToEnd = function() {
               scope.current = scope.data.length - 1;
               scope.loadImage(scope.current);
           }
