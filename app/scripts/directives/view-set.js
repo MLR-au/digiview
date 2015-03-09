@@ -72,8 +72,11 @@ angular.module('digiviewApp')
               })
           }
           scope.$on('search-results-updated', function(v,k) {
-              extractWordMatches(SolrService.results.highlighting);
-              scope.highlighting = SolrService.results.highlighting;
+              if (SolrService.results.term !== '*') {
+                  // no word search in action
+                  extractWordMatches(SolrService.results.highlighting);
+                  scope.highlighting = SolrService.results.highlighting;
+              }
               scope.data = SolrService.results.items[0].docs;
               //
               // construct the data structure for the filmstrip
@@ -99,14 +102,19 @@ angular.module('digiviewApp')
           }
 
           scope.getWordsAndLoadImage = function() {
-              var url = scope.data[scope.current].words;
-              $http.get(url).then(function(resp) {
-                  highlightWordMatches(resp.data.words);
-                  hs.storeMatchedWordsAndHighlights(resp.data.page, scope.matchedWords, scope.highlights);
+              if (SolrService.results.term !== '*') {
+                  var url = scope.data[scope.current].words;
+                  $http.get(url).then(function(resp) {
+                      highlightWordMatches(resp.data.words);
+                      hs.storeMatchedWordsAndHighlights(resp.data.page, scope.matchedWords, scope.highlights);
+                      scope.loadImage();
+                  }, 
+                  function() {
+                  });
+              } else {
+                  // if we're not searching - just load the image
                   scope.loadImage();
-              }, 
-              function() {
-              });
+              }
           }
           // handle an image selection
           scope.loadImage = function() {
@@ -130,7 +138,11 @@ angular.module('digiviewApp')
               $location.hash(old);
 
               // toggle the pagination controls
-              if (scope.current === 0 && scope.data.length > 1) {
+              if (scope.data.length === 1) {
+                  // show none
+                  scope.showNext = false;
+                  scope.showPrevious = false;
+              } else if (scope.current === 0 && scope.data.length > 1) {
                   // show next not previous
                   scope.showNext = true;
                   scope.showPrevious = false;
