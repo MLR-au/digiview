@@ -1,8 +1,8 @@
 'use strict';
 
 angular.module('digiviewApp')
-  .directive('viewSet', [ '$window', '$location', '$anchorScroll', '$timeout', '$routeParams', '$http', 'SolrService', 
-        function ($window, $location, $anchorScroll, $timeout, $routeParams, $http, SolrService) {
+  .directive('viewSet', [ '$window', '$location', '$anchorScroll', '$routeParams', '$http', 'HighlightService', 'SolrService', 
+        function ($window, $location, $anchorScroll, $routeParams, $http, hs, SolrService) {
     return {
       templateUrl: 'views/view-set.html',
       restrict: 'E',
@@ -15,49 +15,8 @@ angular.module('digiviewApp')
           scope.largeImageById = [];
 
           // defaults
-          scope.showFilmstrip = true;
+          scope.showFilmstrip = false;
           scope.showInformation = false;
-
-          var extractWordMatches = function(h) {
-              scope.matchedWords = [];
-              angular.forEach(h, function(v,k) {
-                  var m = v.text[0].match(/<em>(.*?)<\/em>/g);
-                  angular.forEach(m, function(v,k) {
-                      v = v.replace(/<em>/, '').replace(/<\/em>/, '');
-                      if (scope.matchedWords.indexOf(v) === -1) {
-                          scope.matchedWords.push(v);
-                      }
-                  });
-              })
-          }
-
-          scope.$on('search-results-updated', function(v,k) {
-              extractWordMatches(SolrService.results.highlighting);
-              scope.highlighting = SolrService.results.highlighting;
-              scope.data = SolrService.results.items[0].docs;
-              //
-              // construct the data structure for the filmstrip
-              angular.forEach(scope.data, function(v, k) {
-                  scope.smallImages.push(
-                      { 
-                        'id': k,
-                        'src': v.thumb_image
-                      }
-                  );
-                  scope.styleMap[k] = '';
-              });
-
-              // load the first in the set
-              scope.current = 0;
-              scope.loadImage(scope.current);
-
-          })
-          if (SolrService.results.term === undefined) {
-              $window.location = '#/';
-          } else {
-              var theOne = SolrService.results.items[$routeParams.sequenceNo-1];
-              SolrService.search(SolrService.results.term, 0, true, theOne.docs[0].group);
-          }
 
           // handle window resize events
           var w = angular.element($window);
@@ -82,21 +41,26 @@ angular.module('digiviewApp')
           }
           sizeThePanels();
 
-          var getWordsFile = function(url) {
-              $http.get(url).then(function(resp) {
-                  scope.wordCoords = resp.data;
-                  highlightWordMatches();
-              }, 
-              function() {
-              });
+          var extractWordMatches = function(h) {
+              scope.matchedWords = [];
+              angular.forEach(h, function(v,k) {
+                  var m = v.text[0].match(/<em>(.*?)<\/em>/g);
+                  angular.forEach(m, function(v,k) {
+                      v = v.replace(/<em>/, '').replace(/<\/em>/, '');
+                      if (scope.matchedWords.indexOf(v) === -1) {
+                          scope.matchedWords.push(v);
+                      }
+                  });
+              })
           }
 
-          var highlightWordMatches = function() {
+          var highlightWordMatches = function(words) {
               scope.highlights = [];
               angular.forEach(scope.matchedWords, function(v,k) {
-                  if (scope.wordCoords[v] !== undefined) {
-                      angular.forEach(scope.wordCoords[v], function(i, j) {
+                  if (words[v] !== undefined) {
+                      angular.forEach(words[v], function(i, j) {
                           var n = {
+                            'word': v,
                             'top': parseInt(i.top),
                             'bottom': parseInt(i.bottom),
                             'left':  parseInt(i.left),
@@ -107,16 +71,47 @@ angular.module('digiviewApp')
                   }
               })
           }
+          scope.$on('search-results-updated', function(v,k) {
+              extractWordMatches(SolrService.results.highlighting);
+              scope.highlighting = SolrService.results.highlighting;
+              scope.data = SolrService.results.items[0].docs;
+              //
+              // construct the data structure for the filmstrip
+              angular.forEach(scope.data, function(v, k) {
+                  scope.smallImages.push(
+                      { 
+                        'id': k,
+                        'src': v.thumb_image
+                      }
+                  );
+                  scope.styleMap[k] = '';
+              });
 
+              // load the first in the set
+              scope.current = 0;
+              scope.getWordsAndLoadImage();
+          })
+          if (SolrService.results.term === undefined) {
+              $window.location = '#/';
+          } else {
+              var theOne = SolrService.results.items[$routeParams.sequenceNo-1];
+              SolrService.search(SolrService.results.term, 0, true, theOne.docs[0].group);
+          }
 
+          scope.getWordsAndLoadImage = function() {
+              var url = scope.data[scope.current].words;
+              $http.get(url).then(function(resp) {
+                  highlightWordMatches(resp.data.words);
+                  hs.storeMatchedWordsAndHighlights(resp.data.page, scope.matchedWords, scope.highlights);
+                  scope.loadImage();
+              }, 
+              function() {
+              });
+          }
           // handle an image selection
-          scope.loadImage = function(id) {
-              console.log(scope.matchedWords);
-              getWordsFile(scope.data[id].words);
+          scope.loadImage = function() {
               scope.styleMap = {};
-              if (scope.current !== id) {
-                  scope.current = id;
-              }
+              var id = scope.current;
               scope.image = scope.data[id];
               scope.styleMap[id] = 'highlight-current';
 
@@ -153,25 +148,25 @@ angular.module('digiviewApp')
           // page to next image
           scope.next = function() {
               scope.current += 1;
-              scope.loadImage(scope.current);
+              scope.getWordsAndLoadImage();
           }
 
           // page to previous image
           scope.previous = function() {
               scope.current -= 1;
-              scope.loadImage(scope.current);
+              scope.getWordsAndLoadImage();
           }
 
           // jump to first image
           scope.jumpToStart = function() {
               scope.current = 0;
-              scope.loadImage(scope.current);
+              scope.getWordsAndLoadImage();
           }
 
           // jump to last image
           scope.jumpToEnd = function() {
               scope.current = scope.data.length - 1;
-              scope.loadImage(scope.current);
+              scope.getWordsAndLoadImage();
           }
           
           // toggle the filmstrip view

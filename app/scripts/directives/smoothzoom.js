@@ -1,7 +1,7 @@
 'use strict';
 
 angular.module('digiviewApp')
-  .directive('smoothzoom', [ '$window', '$timeout', function ($window, $timeout) {
+  .directive('smoothzoom', [ '$rootScope', '$window', 'HighlightService', function ($rootScope, $window, hs) {
     return {
       template: '',
       restrict: 'A',
@@ -18,11 +18,22 @@ angular.module('digiviewApp')
                   button_AUTO_HIDE: true,
                   button_SIZE: 26,
                   responsive: true,
+                  on_ZOOM_PAN_START: function() {
+                      scope.$apply(function() {
+                          $rootScope.$broadcast('ditch-highlights');
+                      });
+                  },
+                  on_ZOOM_PAN_COMPLETE: function(t) {
+                      scope.$apply(function(d) {
+                          hs.storeCurrentTransformationAndPosition(t, element[0].getBoundingClientRect());
+                      });
+                  }
               });
+              //console.log(element);
+              //console.log(element.smoothZoom('getZoomData'));
           }
 
           scope.$watch('image_pane_height', function() {
-              console.log('image pane height changed');
               element.smoothZoom('destroy');
               scope.init(); 
           })

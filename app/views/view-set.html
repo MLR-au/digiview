@@ -1,3 +1,4 @@
+<highlighter></highlighter>
 <div ng-repeat="highlight in highlights" style="position: fixed; top: {{highlight.top}}px; left: {{highlight.left}}px; 
     z-index: 100; font-color: white; background-color: red;">
     {{highlight}}
@@ -33,13 +34,11 @@
 </div>
 
 <!-- information panel -->
-<div style="position: fixed; top: 0px; left: 0px; height: {{height}}px; width: {{width}}px; z-index: 10; opacity: 0.6; background-color: #e0e0e0;" ng-show="showInformation"></div>
+<div style="position: fixed; top: 0px; left: 0px; height: {{height}}px; width: {{width}}px; z-index: 10; opacity: 0.6; background-color: #e0e0e0;" 
+    ng-show="showInformation" ng-click="toggleInformation()"></div>
 <div style="position: fixed; top: 1%; left: 1%; height: 95%; width: 40%; z-index: 20; background-color: #efefea;; 
         border-radius: 8px; box-shadow: 10px 10px 5px #888888; padding: 15px;" ng-show="showInformation" class="info-panel">
 
-    <button class="btn btn-default pull-right" style="font-size: 26px; border-style: none;" ng-click="toggleInformation()">&times;</button>
-    <br/>
-    <br/>
     <span class="">
         <hr style="border-color: black;" />
         <div class="row">
@@ -71,8 +70,8 @@
             <span class="glyphicon glyphicon-chevron-left" style="margin-left: 5px; font-size: 26px; color: white;"></span>
         </a>
     </div>
-    <div style="position: absolute; height: {{image_pane_height - 10}}px; width: 90%; left: 5%;" smoothzoom>
-        <img ng-src="{{image.large_image}}" id="main_img" ng-if="show" style="display: block; max-width: 100%; max-height: 100%; width: auto; height: auto; margin: auto;"/>
+    <div style="position: absolute; height: {{image_pane_height - 10}}px; width: 90%; left: 5%;">
+        <img ng-src="{{image.large_image}}" id="main_img" ng-if="show" smoothzoom >
     </div>
     <div style="position: absolute; height: {{image_pane_height - 10}}px; width: 5%; left: 95%;">
         <a ng-click="next()" class="right carousel-control" ng-if="showNext">

@@ -6,6 +6,9 @@ body {
 }
 
 .info-panel.ng-hide-remove {
-        animation: fadeInLeft 5s;
+    animation: fadeInLeft 0.5s;
+}
+.info-panel.ng-hide-add {
+    animation: fadeOutLeft 0.5s;
 }
 
