@@ -104,7 +104,8 @@ angular.module('digiviewApp')
           if (SolrService.results.term === undefined) {
               $window.location = '#/';
           } else {
-              scope.groupId = SolrService.results.items[$routeParams.sequenceNo-1].docs[0].group;
+              console.log(SolrService.results.items);
+              scope.groupId = SolrService.results.items[$routeParams.sequenceNo - SolrService.start - 1].docs[0].group;
               SolrService.search(0, true, scope.groupId);
           }
 
