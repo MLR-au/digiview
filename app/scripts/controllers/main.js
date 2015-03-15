@@ -5,7 +5,6 @@ angular.module('digiviewApp')
 
       $scope.$on('search-results-updated', function() {
         $scope.results = SolrService.results;
-        console.log($scope.results);
         $scope.togglePageControls();
       });
 

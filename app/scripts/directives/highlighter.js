@@ -9,27 +9,34 @@ angular.module('digiviewApp')
       },
       link: function postLink(scope, element, attrs) {
           scope.$on('words-updated', function() {
+              scope.wordsUpdated();
+          });
+
+          scope.$on('transform-updated', function() {
+              scope.transformUpdated();
+          });
+
+          scope.$on('ditch-highlights', function() {
+              scope.showHighlights = false;
+          })
+
+          scope.wordsUpdated = function() {
               scope.showHighlights = false;
               scope.words = hs.words;
               scope.highlights = hs.highlights;
               scope.page = hs.page;
               $timeout(function() {
                   scope.update();
-              }, 1500);
-          });
-
-          scope.$on('transform-updated', function() {
+              }, 1000);
+          }
+          scope.transformUpdated = function() {
               scope.showHighlights = false;
               scope.transform = hs.transform;
               scope.position = hs.position;
               $timeout(function() {
                   scope.update();
-              }, 1500);
-          });
-
-          scope.$on('ditch-highlights', function() {
-              scope.showHighlights = false;
-          })
+              }, 1000);
+          }
 
           scope.update = function() {
               scope.highlightBoxes = [];

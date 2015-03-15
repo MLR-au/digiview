@@ -172,21 +172,16 @@ angular.module('digiviewApp')
      * @description
      *  Construct the actual query object - the workhorse
      */
-    function getQuery(start, groupId) {
+    function getQuery(start, groupId, what) {
         var q, sort;
 
-        var what = SolrService.term;
+        var sf = what === undefined ? SolrService.term : what;
 
-        // are we doing a wildcard search? or a single term search fuzzy search?
-        if ( what === '*' || what.substr(-1,1) === '~') {
-            q = '(title:' + what + '^20 OR text:' + what + '^10)';
+        if (SolrService.searchType === 'keyword') {
+            sf = sf.replace(/ /gi, ' ' + conf.keywordSearchOperator + ' ');
+            q = 'title:(' + sf + ')^20 OR text:(' + sf + ')^10';
         } else {
-            if (SolrService.searchType === 'keyword') {
-                what = what.replace(/ /gi, ' ' + conf.keywordSearchOperator + ' ');
-                q = 'title:(' + what + ')^20 OR text:(' + what + ')^10';
-            } else {
-                q = 'title:"' + what + '"^20 OR text:"' + what + '"^10';
-            }
+            q = 'title:"' + sf + '"^20 OR text:"' + sf + '"^10';
         }
 
         if (groupId !== undefined) {
@@ -200,16 +195,7 @@ angular.module('digiviewApp')
         }
 
         // set the sort order: wildcard sort ascending, everything else: by score
-        if (SolrService.sort === undefined) {
-            if (what === '*') {
-                sort = 'score desc';
-            } else {
-                sort = 'score desc';
-            }
-        } else {
-            sort = SolrService.sort;
-        }
-        SolrService.resultSort = sort;
+        SolrService.resultSort = 'score desc';
 
         q = {
             'url': SolrService.solr,
@@ -276,37 +262,39 @@ angular.module('digiviewApp')
      * @param {boolean} ditchuggestion - Whether to delete the spelling 
      *  suggestion.
      */
-    function search(start, ditchSuggestion, groupId) {
-        // should we remove the suggestion
-        //   the only time this should be true is when the method is called
-        //   from basic-search. Pretty much all other times it will be false
-        //   ie. suggestion will be shown
-        if (ditchSuggestion) {
-            SolrService.suggestion =  undefined;
-            $rootScope.$broadcast('search-suggestion-removed');
-        }
-
-        // if what has changed - reset the data object
-        //if (what !== SolrService.term || start === 0) {
-        //    SolrService.results.items = [];
-        //    SolrService.results.start = 0;
-        //}
-
-        // store the term for use in other places
-        //SolrService.term = what;
-
+    function search(start, groupId) {
         // what are we starting at?
         SolrService.start = start === undefined ? 0 : start; 
 
-        // get the query object
-        var q = getQuery(start, groupId);
-        log.debug('query: ');
-        log.debug(q);
-        
-        $http.jsonp(SolrService.solr, q).then(function(d) {
-            // all good - results found
-            saveData(d);
-        });
+        // if we're in the viewer and a search term is specified
+        //  we need to trigger a second search to get the page matches
+        if ($location.path().match(/\/view\//) && SolrService.term !== '*') {
+            var q = getQuery(start, groupId, '*');
+            $http.jsonp(SolrService.solr, q).then(function(d) {
+                // all good - results found
+                saveData(d);
+
+                // trigger a second search to get the matches
+                var q1 = getQuery(start, groupId);
+                $http.jsonp(SolrService.solr, q1).then(function(d) {
+                    SolrService.matches = d.data.highlighting;
+                    $rootScope.$broadcast('matches-available');
+                });
+            });
+
+        } else {
+            // get the query object
+            var q = getQuery(start, groupId);
+            log.debug('query: ');
+            log.debug(q);
+            
+            $http.jsonp(SolrService.solr, q).then(function(d) {
+                // all good - results found
+                saveData(d);
+
+                SolrService.matches === undefined;
+            });
+        }
     }
 
     /**
@@ -470,7 +458,7 @@ angular.module('digiviewApp')
         if (dontSearch !== true) {
             SolrService.results.docs = [];
             SolrService.results.start = 0;
-            search(0, true);
+            search(0);
         }
     }
 
@@ -508,7 +496,7 @@ angular.module('digiviewApp')
 
         SolrService.results.docs = [];
         SolrService.results.start = 0;
-        search(0, true);
+        search(0);
     }
 
     /**
@@ -564,7 +552,7 @@ angular.module('digiviewApp')
         SolrService.dateFilters = {};
         
         // update the search
-        search(0, true);
+        search(0);
 
         // tell all the filters to reset
         $rootScope.$broadcast('reset-all-filters');
@@ -578,7 +566,7 @@ angular.module('digiviewApp')
         delete SolrService.filters[facet];
         
         // update the search
-        search(0, true);
+        search(0);
     }
 
     /**

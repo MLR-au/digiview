@@ -34,55 +34,20 @@ angular.module('digiviewApp')
               scope.width = $window.innerWidth;
               scope.navbar_height = 50;
               if (scope.showFilmstrip === true) {
-                  scope.image_pane_height = ($window.innerHeight - scope.navbar_height) * 0.80;
+                  scope.image_pane_height = ($window.innerHeight - scope.navbar_height) * 0.90;
                   scope.filmstrip_height = $window.innerHeight - scope.navbar_height - scope.image_pane_height;
-                  scope.image_height = scope.filmstrip_height * 0.9;
+                  scope.image_height = scope.filmstrip_height * 0.8;
               } else {
                   scope.image_pane_height = ($window.innerHeight - scope.navbar_height);
               }
           }
           sizeThePanels();
 
-          var extractWordMatches = function(h) {
-              scope.matchedWords = [];
-              angular.forEach(h, function(v,k) {
-                  var m = v.text[0].match(/<em>(.*?)<\/em>/g);
-                  angular.forEach(m, function(v,k) {
-                      v = v.replace(/<em>/, '').replace(/<\/em>/, '');
-                      if (scope.matchedWords.indexOf(v) === -1) {
-                          scope.matchedWords.push(v);
-                      }
-                  });
-              })
-          }
-
-          var highlightWordMatches = function(words) {
-              scope.highlights = [];
-              angular.forEach(scope.matchedWords, function(v,k) {
-                  if (words[v] !== undefined) {
-                      angular.forEach(words[v], function(i, j) {
-                          var n = {
-                            'word': v,
-                            'top': parseInt(i.top),
-                            'bottom': parseInt(i.bottom),
-                            'left':  parseInt(i.left),
-                            'right':  parseInt(i.right)
-                          }
-                          scope.highlights.push(n);
-                      })
-                  }
-              })
-          }
           scope.$on('search-results-updated', function(v,k) {
               scope.ready = true;
               scope.showSpinner = false;
-              if (SolrService.results.term !== '*') {
-                  // no word search in action
-                  extractWordMatches(SolrService.results.highlighting);
-                  scope.highlighting = SolrService.results.highlighting;
-              }
               scope.data = SolrService.results.items[0].docs;
-              //
+
               // construct the data structure for the filmstrip
               angular.forEach(scope.data, function(v, k) {
                   scope.smallImages.push(
@@ -94,9 +59,44 @@ angular.module('digiviewApp')
                   scope.styleMap[k] = '';
               });
 
-              // load the first in the set
               scope.current = 0;
-              scope.getWordsAndLoadImage();
+              
+              // load the first in the set if it's a wildcard search otherwise let
+              //   the matches routeine trigger the first load
+              if (SolrService.term === '*') {
+                scope.loadImage();
+              }
+          })
+          scope.$on('matches-available', function(d) {
+              if (SolrService.results.term !== '*' && SolrService.matches !== undefined) {
+                // search term
+                scope.term = SolrService.term;
+
+                // no word search in action
+                scope.matchedWords = [];
+                angular.forEach(SolrService.matches, function(v,k) {
+                  var m = v.text[0].match(/<em>(.*?)<\/em>/g);
+                  angular.forEach(m, function(v,k) {
+                      v = v.replace(/<em>/, '').replace(/<\/em>/, '');
+                      if (scope.matchedWords.indexOf(v) === -1) {
+                          scope.matchedWords.push(v);
+                      }
+                  });
+                })
+
+                scope.pageMatches = []
+                var flattened = _.pluck(scope.data, 'id');
+                angular.forEach(SolrService.matches, function(v,k) {
+                    if (flattened.indexOf(k) !== -1) {
+                        scope.pageMatches.push(flattened.indexOf(k) + 1);
+                    }
+                })
+
+                // load the image
+                scope.current = scope.pageMatches[0] - 1;
+                scope.loadImage();
+                
+              }
           })
           //
           // THIS IS WHERE IT STARTS
@@ -106,38 +106,46 @@ angular.module('digiviewApp')
               $window.location = '#/';
           } else {
               scope.groupId = SolrService.results.items[$routeParams.sequenceNo - SolrService.start - 1].docs[0].group;
-              SolrService.search(0, true, scope.groupId);
+              SolrService.search(0, scope.groupId);
           }
 
-          scope.getWordsAndLoadImage = function() {
-              if (SolrService.results.term !== '*') {
-                  var url = scope.data[scope.current].words;
-                  $http.get(url).then(function(resp) {
-                      highlightWordMatches(resp.data.words);
-                      hs.storeMatchedWordsAndHighlights(resp.data.page, scope.matchedWords, scope.highlights);
-                      scope.loadImage();
-                  }, 
-                  function() {
-                  });
-              } else {
-                  // if we're not searching - just load the image
-                  scope.loadImage();
-              }
+          scope.getWords = function(words) {
+              $http.get(words).then(function(resp) {
+                  var words = resp.data.words;
+                  scope.highlights = [];
+                  angular.forEach(scope.matchedWords, function(v,k) {
+                      if (words[v] !== undefined) {
+                          angular.forEach(words[v], function(i, j) {
+                              var n = {
+                                'word': v,
+                                'top': parseInt(i.top),
+                                'bottom': parseInt(i.bottom),
+                                'left':  parseInt(i.left),
+                                'right':  parseInt(i.right)
+                              }
+                              scope.highlights.push(n);
+                          })
+                      }
+                  })
+                  hs.storeMatchedWordsAndHighlights(resp.data.page, scope.matchedWords, scope.highlights);
+              }, 
+              function() {
+              });
           }
           // handle an image selection
           scope.loadImage = function() {
+              // get the words list and kick off the highlighting
+              if (SolrService.term !== '*') {
+                  scope.getWords(scope.data[scope.current].words);
+              }
+
               scope.styleMap = {};
               var id = scope.current;
               scope.image = scope.data[id];
               scope.styleMap[id] = 'highlight-current';
 
-              scope.show = false;
+              // show the image
               scope.show = true;
-
-              //scope.styleMap[scope.current] = '';
-              //scope.styleMap[id] = 'highlight-current';
-              //scope.current = id;
-              //scope.displaying = (scope.largeImageById.indexOf(scope.current) + 1) + ' of ' + scope.largeImageById.length;
 
               // scroll the thumbnails
               var old = $location.hash();
@@ -168,25 +176,34 @@ angular.module('digiviewApp')
           // page to next image
           scope.next = function() {
               scope.current += 1;
-              scope.getWordsAndLoadImage();
+              scope.loadImage();
           }
 
           // page to previous image
           scope.previous = function() {
               scope.current -= 1;
-              scope.getWordsAndLoadImage();
+              scope.loadImage();
           }
 
           // jump to first image
           scope.jumpToStart = function() {
               scope.current = 0;
-              scope.getWordsAndLoadImage();
+              scope.loadImage();
           }
 
           // jump to last image
           scope.jumpToEnd = function() {
               scope.current = scope.data.length - 1;
-              scope.getWordsAndLoadImage();
+              scope.loadImage();
+          }
+
+          // jump to page
+          scope.jumpToPage = function(page) {
+              scope.current = page;
+              scope.loadImage();
+
+              // only close the panel if it's open
+              if (scope.showInformation) scope.toggleInformation();
           }
           
           // toggle the filmstrip view

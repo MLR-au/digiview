@@ -51,7 +51,16 @@
                 </dl>
                 <br/>
                 Currently viewing page {{image.page | number}} of {{image.total_pages}}
-                
+            </div>
+        </div>
+        <div class="row" ng-if="term">
+            <div class="col-lg-12">
+                <hr/>
+                <strong>Search Term: </strong>{{term}}<br/>
+                <strong>Matches found on pages:</strong></br>
+                <ul>
+                    <li ng-repeat="page in pageMatches"><a href="" ng-click="jumpToPage(page-1)">Page {{page}}</a></li>
+                </ul>
             </div>
         </div>
     </span>
@@ -88,7 +97,7 @@
     style="position:fixed; top: {{navbar_height + image_pane_height}}px; left: 0px; height: {{filmstrip_height}}px; width: 100%; 
             overflow-x: scroll; white-space: nowrap; display: inline-block; background-color: black;">
     <span ng-repeat="img in smallImages">
-        <a ng-click="loadImage(img.id)" class="{{styleMap[img.id]}}" id="{{img.id}}" style="top:0; left: 0; right: 0; bottom: 0; margin: auto;">
+        <a ng-click="jumpToPage(img.id)" class="{{styleMap[img.id]}}" id="{{img.id}}" style="top:0; left: 0; right: 0; bottom: 0; margin: auto;">
             <img src="{{img.src}}" class="img-thumbnail" style="height: {{image_height}}px;"  />
         </a>
     </span>
