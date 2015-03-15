@@ -255,16 +255,6 @@ angular.module('digiviewApp')
             'sort': SolrService.sort,
             'site': SolrService.site,
         }
-
-        // only store the number in the set if it's more than one because
-        //  one means we've selected something to look at
-        if (SolrService.results.items.length !== 1) {
-            currentQuery.nResults = SolrService.results.items.length;
-        } else {
-            // otherwise - grab the number in the previous set before overwriting
-            var c = loadData();
-            currentQuery.nResults = c.nResults;
-        }
         sessionStorage.setItem('cq', angular.toJson(currentQuery));
     }
 

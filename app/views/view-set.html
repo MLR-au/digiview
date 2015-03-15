@@ -1,9 +1,4 @@
 <highlighter></highlighter>
-<div ng-repeat="highlight in highlights" style="position: fixed; top: {{highlight.top}}px; left: {{highlight.left}}px; 
-    z-index: 100; font-color: white; background-color: red;">
-    {{highlight}}
-    
-</div>
 
 <!-- controls (navbar) -->
 <div style="position:fixed; top: 0px; left: 0px; height: {{navbar_height}}px; width: 100%; background-color: black;">
@@ -35,10 +30,9 @@
 
 <!-- information panel -->
 <div style="position: fixed; top: 0px; left: 0px; height: {{height}}px; width: {{width}}px; z-index: 10; opacity: 0.6; background-color: #e0e0e0;" 
-    ng-show="showInformation" ng-click="toggleInformation()"></div>
+    ng-show="showInformation" ng-if="ready" ng-click="toggleInformation()"></div>
 <div style="position: fixed; top: 1%; left: 1%; height: 95%; width: 40%; z-index: 20; background-color: #efefea;; 
-        border-radius: 8px; box-shadow: 10px 10px 5px #888888; padding: 15px;" ng-show="showInformation" class="info-panel">
-
+        border-radius: 8px; box-shadow: 10px 10px 5px #888888; padding: 15px;" ng-show="showInformation" ng-if="ready" class="info-panel">
     <span class="">
         <hr style="border-color: black;" />
         <div class="row">
@@ -65,6 +59,7 @@
 
 <!-- Image large view panel -->
 <div style="position:fixed; top: {{navbar_height}}px; left: 0px; height: {{image_pane_height}}px; width: 100%; background-color: black;">
+    <spinner ng-if='showSpinner'></spinner>
     <div style="position: absolute; height: {{image_pane_height - 10}}px; width: 5%; left: 0px;">
         <a ng-click="previous()" class="left carousel-control" ng-if="showPrevious">
             <span class="glyphicon glyphicon-chevron-left" style="margin-left: 5px; font-size: 26px; color: white;"></span>

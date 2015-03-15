@@ -13,10 +13,12 @@ angular.module('digiviewApp')
           scope.largeImageMap = {};
           scope.styleMap = {};
           scope.largeImageById = [];
+          scope.ready = false;
 
           // defaults
           scope.showFilmstrip = false;
           scope.showInformation = false;
+          scope.showSpinner = true;
 
           // handle window resize events
           var w = angular.element($window);
@@ -72,6 +74,8 @@ angular.module('digiviewApp')
               })
           }
           scope.$on('search-results-updated', function(v,k) {
+              scope.ready = true;
+              scope.showSpinner = false;
               if (SolrService.results.term !== '*') {
                   // no word search in action
                   extractWordMatches(SolrService.results.highlighting);
@@ -94,11 +98,14 @@ angular.module('digiviewApp')
               scope.current = 0;
               scope.getWordsAndLoadImage();
           })
+          //
+          // THIS IS WHERE IT STARTS
+          //
           if (SolrService.results.term === undefined) {
               $window.location = '#/';
           } else {
-              var theOne = SolrService.results.items[$routeParams.sequenceNo-1];
-              SolrService.search(SolrService.results.term, 0, true, theOne.docs[0].group);
+              scope.groupId = SolrService.results.items[$routeParams.sequenceNo-1].docs[0].group;
+              SolrService.search(0, true, scope.groupId);
           }
 
           scope.getWordsAndLoadImage = function() {
