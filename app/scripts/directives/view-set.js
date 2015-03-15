@@ -1,8 +1,8 @@
 'use strict';
 
 angular.module('digiviewApp')
-  .directive('viewSet', [ '$window', '$location', '$anchorScroll', '$routeParams', '$http', 'HighlightService', 'SolrService', 
-        function ($window, $location, $anchorScroll, $routeParams, $http, hs, SolrService) {
+  .directive('viewSet', [ '$window', '$location', '$anchorScroll', '$routeParams', '$http', '$timeout', 'HighlightService', 'SolrService', 
+        function ($window, $location, $anchorScroll, $routeParams, $http, $timeout, hs, SolrService) {
     return {
       templateUrl: 'views/view-set.html',
       restrict: 'E',
@@ -210,6 +210,15 @@ angular.module('digiviewApp')
           scope.toggleFilmstrip = function() {
               scope.showFilmstrip = !scope.showFilmstrip;
               sizeThePanels();
+              if (scope.showFilmstrip) {
+                  $timeout(function(d) {
+                    // scroll the thumbnails
+                    var old = $location.hash();
+                    $location.hash(scope.current);
+                    $anchorScroll();
+                    $location.hash(old);
+                  }, 2000);
+              }
           }
 
           // show the item information panel
