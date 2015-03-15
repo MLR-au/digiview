@@ -127,6 +127,26 @@ angular.module('digiviewApp')
                           })
                       }
                   })
+
+                  // try regex type of match
+                  angular.forEach(scope.matchedWords, function(v,k) {
+                      if (words[v] === undefined) {
+                          angular.forEach(words, function(i, j) {
+                              if (j.match(v) !== null) {
+                                  angular.forEach(i, function(f, g) {
+                                      var n = {
+                                        'word': j,
+                                        'top': parseInt(f.top),
+                                        'bottom': parseInt(f.bottom),
+                                        'left':  parseInt(f.left),
+                                        'right':  parseInt(f.right)
+                                      }
+                                      scope.highlights.push(n);
+                                  });
+                              }
+                          })
+                      }
+                  })
                   hs.storeMatchedWordsAndHighlights(resp.data.page, scope.matchedWords, scope.highlights);
               }, 
               function() {
