@@ -21,12 +21,15 @@ angular.module('digiviewApp')
           }
 
           scope.search = function() {
+              if (scope.searchBox === '') {
+                  scope.searchBox = '*';
+              }
               // args:
               // - what: scope.searchBox (the search term
               // - start: 0 (record to start at)
               // - ditchSuggestion: true
               SolrService.term = scope.searchBox;
-              SolrService.search();
+              SolrService.search(0);
           };
 
           // let's get this party started!!

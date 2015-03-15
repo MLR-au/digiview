@@ -295,7 +295,8 @@ angular.module('digiviewApp')
         // store the term for use in other places
         //SolrService.term = what;
 
-        if (start === undefined) { start = 0; }
+        // what are we starting at?
+        SolrService.start = start === undefined ? 0 : start; 
 
         // get the query object
         var q = getQuery(start, groupId);

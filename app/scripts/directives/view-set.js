@@ -102,9 +102,9 @@ angular.module('digiviewApp')
           // THIS IS WHERE IT STARTS
           //
           if (SolrService.results.term === undefined) {
+              // reload or back to app - this is undefined so go back to start page
               $window.location = '#/';
           } else {
-              console.log(SolrService.results.items);
               scope.groupId = SolrService.results.items[$routeParams.sequenceNo - SolrService.start - 1].docs[0].group;
               SolrService.search(0, true, scope.groupId);
           }
