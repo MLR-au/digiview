@@ -1,25 +1,30 @@
 'use strict';
 
 angular.module('digiviewApp')
-  .directive('highlighter', [ 'HighlightService', function (hs) {
+  .directive('highlighter', [ '$timeout', 'HighlightService', function ($timeout, hs) {
     return {
       templateUrl: 'views/highlighter.html',
       restrict: 'E',
       scope: {
       },
       link: function postLink(scope, element, attrs) {
-          scope.showHighlights = false;
           scope.$on('words-updated', function() {
+              scope.showHighlights = false;
               scope.words = hs.words;
               scope.highlights = hs.highlights;
               scope.page = hs.page;
-              scope.update();
+              $timeout(function() {
+                  scope.update();
+              }, 1500);
           });
 
           scope.$on('transform-updated', function() {
+              scope.showHighlights = false;
               scope.transform = hs.transform;
               scope.position = hs.position;
-              scope.update();
+              $timeout(function() {
+                  scope.update();
+              }, 1500);
           });
 
           scope.$on('ditch-highlights', function() {

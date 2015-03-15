@@ -1,7 +1,8 @@
 'use strict';
 
 angular.module('digiviewApp')
-  .directive('smoothzoom', [ '$rootScope', '$window', 'HighlightService', function ($rootScope, $window, hs) {
+  .directive('smoothzoom', [ '$rootScope', '$window', '$timeout', 'HighlightService', 
+    function ($rootScope, $window, $timeout, hs) {
     return {
       template: '',
       restrict: 'A',
