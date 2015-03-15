@@ -131,6 +131,7 @@ angular.module('digiviewApp')
         SolrService.term = data.term;
         SolrService.searchType = data.searchType;
         SolrService.sort = data.sort;
+        SolrService.start = data.start;
     }
 
     /**
@@ -254,6 +255,7 @@ angular.module('digiviewApp')
             'searchType': SolrService.searchType,
             'sort': SolrService.sort,
             'site': SolrService.site,
+            'start': SolrService.start
         }
         sessionStorage.setItem('cq', angular.toJson(currentQuery));
     }

@@ -13,7 +13,7 @@ angular.module('digiviewApp')
           // handle the app being bootstrapped
           scope.$on('app-ready', function() {
               scope.searchBox = SolrService.term;
-              SolrService.search();
+              SolrService.search(SolrService.start);
           });
 
           scope.setSearchBox = function() {
