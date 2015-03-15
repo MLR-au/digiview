@@ -264,7 +264,9 @@ angular.module('digiviewApp')
      */
     function search(start, groupId) {
         // what are we starting at?
-        SolrService.start = start === undefined ? 0 : start; 
+        if (start === undefined) { 
+            start = 0;
+        }
 
         // if we're in the viewer and a search term is specified
         //  we need to trigger a second search to get the page matches

@@ -29,6 +29,7 @@ angular.module('digiviewApp')
               // - start: 0 (record to start at)
               // - ditchSuggestion: true
               SolrService.term = scope.searchBox;
+              SolrService.start = 0;
               SolrService.search(0);
           };
 
