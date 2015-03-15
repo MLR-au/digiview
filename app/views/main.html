@@ -33,9 +33,17 @@
                 </div>
             </div>
         </div>
-        <div class="col-sm-8 col-md-8 col-lg-8" style="">
+        <div class="col-sm-8 col-md-8 col-lg-8 text-center" style="" ng-show="!results">
+            <h4>loading...</h4>
+        </div>
+        <div class="col-sm-8 col-md-8 col-lg-8" style="" ng-show="results">
             <item-match-list></item-match-list>
-            <button class="btn btn-default btn-block" ng-click="loadMoreResults()" ng-hide="disableNextButton" style="height: 50px;">load more results</button>
+            <button type="button" class="btn btn-sm btn-default" ng-click="previousPage()" ng-disabled="disablePrevious">
+                <span class="glyphicon glyphicon-arrow-left"></span> previous page
+            </button>
+            <button type="button" class="btn btn-sm btn-default" ng-click="nextPage()" ng-disabled="disableNext">
+                next page <span class="glyphicon glyphicon-arrow-right"></span>
+            </button>
         </div>
     </div>
 </div>

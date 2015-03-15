@@ -8,12 +8,13 @@
  *
  * @requires $rootScope
  * @requires $http
+ * @requires LogggerService
  * @requires Configuration
  *
  */
 angular.module('digiviewApp')
-  .factory('SolrService', [ '$rootScope', '$http', '$routeParams', '$route', '$location', '$timeout', '$window', 'Configuration',
-        function SolrService($rootScope, $http, $routeParams, $route, $location, $timeout, $window, conf) {
+  .factory('SolrService', [ '$rootScope', '$http', '$routeParams', '$route', '$location', '$timeout', '$window', 'LoggerService', 'Configuration',
+        function SolrService($rootScope, $http, $routeParams, $route, $location, $timeout, $window, log, conf) {
     // AngularJS will instantiate a singleton by calling "new" on this function
 
     var nLocationTerms = function() {
@@ -62,32 +63,21 @@ angular.module('digiviewApp')
     *
     */
     function init() {
-        console.debug('############');
-        console.debug('############ APPLICATION INITIALISED');
-        console.debug('############');
+        log.init(conf.loglevel);
+        log.info('############');
+        log.info('############ APPLICATION INITIALISED');
+        log.info('############');
         SolrService.filters = {};
         SolrService.dateFilters = {};
         SolrService.results = {};
         SolrService.facets = {};
-        SolrService.searchType = 'keyword';
 
-        var site;
-        if ($routeParams.site !== undefined) {
-            site = $routeParams.site;
-        } else {
-            site = conf.site;
-        }
         SolrService.deployment = conf[conf.deployment];
-        SolrService.site = site;
+        SolrService.site = conf.site;
+        SolrService.searchType = conf.searchType;
         SolrService.solr = SolrService.deployment + '/' + SolrService.site + '/select';
-        console.debug('Solr Service: ' + SolrService.solr);
-        console.debug('Site: ' + SolrService.site);
-
-        // init the date widget
-        //SolrService.dateOuterBounds();
-
-        // load the site data
-        //loadSiteData()
+        log.debug('Solr Service: ' + SolrService.solr);
+        log.debug('Site: ' + SolrService.site);
 
         // url search parameters override saved queries
         if (nLocationTerms() > 0) {
@@ -108,7 +98,13 @@ angular.module('digiviewApp')
             // init the app
             initCurrentInstance();
         }
-        
+
+        // Broadcast ready to go
+        SolrService.appInit = false;
+        $timeout(function() {
+            $rootScope.$broadcast('app-ready');
+        }, 1000);
+
         return true;
     }
 
@@ -121,19 +117,6 @@ angular.module('digiviewApp')
         return angular.fromJson($rootScope.$eval(d));
     }
 
-    /*
-     * @ngdoc function
-     * @name loadData
-     */
-    function redirectToRoot() {
-        var d = loadData();
-        if (d.site === conf.site) {
-            $window.location = '#/';
-        } else {
-            $window.location = '#/' + d.site;
-        }
-    }
-
     /**
      * @ngdoc function
      * @name initAppFromSavedData
@@ -141,24 +124,13 @@ angular.module('digiviewApp')
     function initAppFromSavedData() {
         var data = SolrService.loadData();
         SolrService.appInit = true;
-        console.debug('Initialising app from saved data');
+        log.info('Initialising app from saved data');
         SolrService.q = data.q;
         SolrService.filters = data.filters,
         SolrService.dateFilters = data.dateFilters,
         SolrService.term = data.term;
         SolrService.searchType = data.searchType;
         SolrService.sort = data.sort;
-        if (data.nResults !== undefined) {
-            SolrService.rows = data.nResults;
-        }
-        console.log(SolrService.rows);
-
-        // broadcast the fact that we've initialised from a previous
-        //  saved state so that the search form can update itself
-        $timeout(function() {
-            $rootScope.$broadcast('app-ready');
-            SolrService.appInit = false;
-        }, 300);
     }
 
     /**
@@ -167,18 +139,19 @@ angular.module('digiviewApp')
      */
     function initCurrentInstance() {
         SolrService.appInit = true;
-        console.debug('Bootstrapping app');
+        log.info('Bootstrapping app');
+        var params = $location.search();
 
         // if there's a term in the URL - set it
-        if ($routeParams.q !== undefined) {
-            SolrService.term = $routeParams.q;
+        if (params.q !== undefined) {
+            SolrService.term = params.q;
         } else {
             SolrService.term = '*';
         }
 
         // set the various facets defined in the URI
-        angular.forEach($routeParams, function(v,k) {
-            if (conf.allowedRouteParams.indexOf(k) !== -1 && k !== 'q') {
+        angular.forEach(params, function(v,k) {
+            if (k !== 'q') {
                 if (typeof(v) === 'object') {
                     for (var i=0; i < v.length ; i++) {
                         SolrService.filterQuery(k, v[i], true);
@@ -186,50 +159,10 @@ angular.module('digiviewApp')
                 } else {
                     SolrService.filterQuery(k, v, true);
                 }
-                SolrService.updateFacetCount(k);
             }
         });
 
-        angular.forEach($routeParams, function(v,k) {
-            if (conf.allowedRouteParams.indexOf(k) !== -1) {
-                $location.search(k, null);
-            }
-        })
-
-        $timeout(function() {
-            // broadcast the fact that we've initialised from a previous
-            //  saved state so that the search form can update itself
-            $rootScope.$broadcast('app-ready');
-            SolrService.appInit = false;
-        }, 300);
-    }
-
-    /**
-     * @ngdoc function
-     * @name loadSiteData
-     * @description: 
-     *  Load a record and extract the site name and url
-     */
-    function loadSiteData() {
-        if (SolrService.site !== 'ESRC') {
-            var q = {
-                'url': SolrService.solr,
-                'params': {
-                    'q': '*:*',
-                    'rows': 1,
-                    'wt': 'json',
-                    'json.wrf': 'JSON_CALLBACK',
-                }
-            }
-            $http.jsonp(SolrService.solr, q).then(function(d) {
-                SolrService.site_name = d.data.response.docs[0].site_name;
-                SolrService.site_url = d.data.response.docs[0].site_url;
-                console.debug('Searching site: ' + SolrService.site_name);
-                $rootScope.$broadcast('site-name-retrieved');
-            });
-        } else {
-            $rootScope.$broadcast('site-name-retrieved');
-        }
+        $location.search({}).replace();
     }
 
     /**
@@ -351,7 +284,7 @@ angular.module('digiviewApp')
      * @param {boolean} ditchuggestion - Whether to delete the spelling 
      *  suggestion.
      */
-    function search(what, start, ditchSuggestion, groupId) {
+    function search(start, ditchSuggestion, groupId) {
         // should we remove the suggestion
         //   the only time this should be true is when the method is called
         //   from basic-search. Pretty much all other times it will be false
@@ -362,17 +295,20 @@ angular.module('digiviewApp')
         }
 
         // if what has changed - reset the data object
-        if (what !== SolrService.term || start === 0) {
-            SolrService.results.items = [];
-            SolrService.results.start = 0;
-        }
+        //if (what !== SolrService.term || start === 0) {
+        //    SolrService.results.items = [];
+        //    SolrService.results.start = 0;
+        //}
 
         // store the term for use in other places
-        SolrService.term = what;
+        //SolrService.term = what;
+
+        if (start === undefined) { start = 0; }
 
         // get the query object
         var q = getQuery(start, groupId);
-        console.debug('query: ', q);
+        log.debug('query: ');
+        log.debug(q);
         
         $http.jsonp(SolrService.solr, q).then(function(d) {
             // all good - results found
@@ -400,12 +336,8 @@ angular.module('digiviewApp')
                 'items': []
             };
         } else {
-            var items;
-            if (SolrService.results.items !== undefined) {
-                items = SolrService.results.items;
-            } else {
-                items = [];
-            }
+            var items = [];
+            
             angular.forEach(d.data.grouped.group.groups, function(v, k) {
                 items.push(v.doclist);
             });
@@ -420,17 +352,33 @@ angular.module('digiviewApp')
             };
 
             angular.forEach(SolrService.results.items, function(v,k) {
-                SolrService.results.items[k].sequenceNo = k+1;
+                SolrService.results.items[k].sequenceNo = SolrService.start + k + 1;
             });
         }
         
         // update all facet counts
         updateAllFacetCounts();
-        //compileDateFacets();
         saveCurrentSearch();
 
         // notify the result widget that it's time to update
         $rootScope.$broadcast('search-results-updated');
+    }
+
+
+    /**
+     * @ngdoc function
+     * @name SolrService.service:previousPage
+     * @description
+     *  Get the next set of results.
+     */
+    function previousPage() {
+        var start = SolrService.start - SolrService.rows;
+        SolrService.start = start;
+        if (start < 0 || SolrService.start < 0) {
+            SolrService.start = 0;
+            start = 0;
+        }
+        search(start);
     }
 
     /**
@@ -440,9 +388,9 @@ angular.module('digiviewApp')
      *  Get the next set of results.
      */
     function nextPage() {
-        //var start = SolrService.results.start + SolrService.rows;
-        var start = SolrService.results.items.length;
-        search(SolrService.term, start);
+        var start = SolrService.start + SolrService.rows;
+        SolrService.start = start;
+        search(start);
     }
 
     /**
@@ -467,7 +415,7 @@ angular.module('digiviewApp')
         q.params['facet.sort'] = 'count';
         q.params['facet.offset'] = offset;
         q.params.rows = 0;
-        //console.debug(q);
+        //log.debug(q);
         $http.jsonp(SolrService.solr, q).then(function(d) {
             angular.forEach(d.data.facet_counts.facet_fields, function(v, k) {
                 var f = [];
@@ -529,7 +477,7 @@ angular.module('digiviewApp')
         if (dontSearch !== true) {
             SolrService.results.docs = [];
             SolrService.results.start = 0;
-            search(SolrService.term, 0, true);
+            search(0, true);
         }
     }
 
@@ -567,7 +515,7 @@ angular.module('digiviewApp')
 
         SolrService.results.docs = [];
         SolrService.results.start = 0;
-        search(SolrService.term, 0, true);
+        search(0, true);
     }
 
     /**
@@ -623,7 +571,7 @@ angular.module('digiviewApp')
         SolrService.dateFilters = {};
         
         // update the search
-        search(SolrService.term, 0, true);
+        search(0, true);
 
         // tell all the filters to reset
         $rootScope.$broadcast('reset-all-filters');
@@ -637,7 +585,7 @@ angular.module('digiviewApp')
         delete SolrService.filters[facet];
         
         // update the search
-        search(SolrService.term, 0, true);
+        search(0, true);
     }
 
     /**
@@ -663,7 +611,7 @@ angular.module('digiviewApp')
      *  the updated sort order.
      */
     function reSort() {
-        search(SolrService.term, 0);
+        search(0);
     }
 
     /**
@@ -751,19 +699,19 @@ angular.module('digiviewApp')
         filters: {},
         filterUnion: {},
         dateFilters: {},
-        searchType: 'phrase',
+        searchWhat: [],
         term: '*',
         rows: 10,
-        defaultRows: 10,
+        start: 0,
         sort: undefined,
         resultSort: undefined,
         hideDetails: false,
 
         init: init,
-        redirectToRoot: redirectToRoot,
         loadData: loadData,
         search: search,
         saveData: saveData,
+        previousPage: previousPage,
         nextPage: nextPage,
         updateFacetCount: updateFacetCount,
         filterQuery: filterQuery,
