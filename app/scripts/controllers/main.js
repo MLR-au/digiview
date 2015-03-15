@@ -3,10 +3,9 @@
 angular.module('digiviewApp')
   .controller('MainCtrl', [ '$scope', 'SolrService', function ($scope, SolrService) {
 
-      $scope.disableNextButton = true;
-
       $scope.$on('search-results-updated', function() {
         $scope.results = SolrService.results;
+        console.log($scope.results);
         $scope.togglePageControls();
       });
 
@@ -19,13 +18,16 @@ angular.module('digiviewApp')
           SolrService.previousPage();
       };
       $scope.togglePageControls = function() {
+          $scope.disablePrevious = true;
+          $scope.disableNext = true;
+
           if (SolrService.start === 0) {
               $scope.disablePrevious = true;
           } else {
               $scope.disablePrevious = false;
           }
 
-          if (SolrService.start + SolrService.rows >= $scope.results.total) {
+          if (SolrService.start + SolrService.rows >= $scope.results.totalGroups) {
               $scope.disableNext = true;
           } else {
               $scope.disableNext = false;
